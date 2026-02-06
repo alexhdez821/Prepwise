@@ -1,0 +1,20 @@
+# Netlify configuration for PrepWise
+
+[build]
+  # Specify the functions directory
+  functions = "netlify/functions"
+  # No build command needed for static site
+  publish = "."
+
+[functions]
+  # Use esbuild for faster builds
+  node_bundler = "esbuild"
+  # Increase timeout to 30 seconds for AI generation
+  [functions."generate-meal-plan"]
+    timeout = 30
+
+# Redirect all requests to index.html for SPA behavior
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
