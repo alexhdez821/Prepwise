@@ -300,6 +300,94 @@
 
   .hidden { display: none !important; }
 
+  /* ═══════ RECIPE MODAL ═══════ */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+    backdrop-filter: blur(8px); z-index: 1000;
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px; opacity: 0; pointer-events: none;
+    transition: opacity 0.3s ease;
+  }
+  .modal-overlay.show { opacity: 1; pointer-events: auto; }
+
+  .modal-content {
+    background: var(--bg-mid); border: 1px solid var(--glass-border-light);
+    border-radius: 20px; max-width: 540px; width: 100%;
+    max-height: 85vh; overflow-y: auto; position: relative;
+    transform: scale(0.95) translateY(20px); transition: transform 0.3s ease;
+  }
+  .modal-overlay.show .modal-content { transform: scale(1) translateY(0); }
+
+  .modal-header {
+    position: sticky; top: 0; background: var(--bg-mid);
+    border-bottom: 1px solid var(--glass-border);
+    padding: 20px 24px; display: flex; align-items: flex-start; gap: 16px;
+    z-index: 10;
+  }
+  .modal-close {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08);
+    color: var(--text-muted); display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 20px; transition: all 0.2s; flex-shrink: 0;
+  }
+  .modal-close:hover { background: rgba(255,255,255,0.1); }
+
+  .modal-title-area { flex: 1; }
+  .modal-meal-type {
+    display: flex; align-items: center; gap: 6px;
+    color: var(--text-muted); font-size: 11px;
+    text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .modal-meal-name {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 24px; font-weight: 700; color: var(--cream);
+    line-height: 1.3; margin-bottom: 8px;
+  }
+  .modal-meta {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  }
+  .modal-meta-item {
+    display: flex; align-items: center; gap: 4px;
+    font-size: 13px; color: var(--text-dim);
+  }
+  .modal-meta-item strong { color: var(--gold-light); font-weight: 600; }
+
+  .modal-body { padding: 24px; }
+
+  .recipe-section { margin-bottom: 28px; }
+  .recipe-section:last-child { margin-bottom: 0; }
+  .recipe-section-title {
+    font-size: 14px; font-weight: 700; color: var(--text-mid);
+    text-transform: uppercase; letter-spacing: 0.08em;
+    margin-bottom: 14px; display: flex; align-items: center; gap: 8px;
+  }
+  .recipe-section-title .emoji { font-size: 18px; }
+
+  .ingredient-list { display: flex; flex-direction: column; gap: 8px; }
+  .ingredient-item {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 10px 14px; background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.05); border-radius: 10px;
+  }
+  .ingredient-bullet {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--gold); flex-shrink: 0; margin-top: 7px;
+  }
+  .ingredient-text { color: var(--text); font-size: 14px; line-height: 1.5; }
+
+  .instruction-list { display: flex; flex-direction: column; gap: 12px; }
+  .instruction-item {
+    display: flex; gap: 14px; align-items: flex-start;
+  }
+  .instruction-number {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--gold-dim); color: var(--gold-light);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; flex-shrink: 0;
+  }
+  .instruction-text { color: var(--text); font-size: 14px; line-height: 1.6; padding-top: 4px; }
+
   /* Animations */
   @keyframes fadeUp {
     from { opacity: 0; transform: translateY(12px); }
@@ -311,6 +399,9 @@
   .meal-card:nth-child(2) { animation-delay: 0.05s; }
   .meal-card:nth-child(3) { animation-delay: 0.1s; }
   .meal-card:nth-child(4) { animation-delay: 0.15s; }
+  
+  .meal-card { cursor: pointer; transition: all 0.2s; }
+  .meal-card:hover { transform: translateY(-2px); border-color: rgba(255,255,255,0.12); }
 </style>
 </head>
 <body>
@@ -415,6 +506,49 @@
     <div id="tipsTab" class="hidden"></div>
 
     <p class="powered-by">Powered by Claude API</p>
+  </div>
+</div>
+
+<!-- ═══════ RECIPE MODAL ═══════ -->
+<div class="modal-overlay" id="recipeModal" onclick="closeRecipeModal(event)">
+  <div class="modal-content" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <button class="modal-close" onclick="closeRecipeModal()">×</button>
+      <div class="modal-title-area">
+        <div class="modal-meal-type">
+          <span id="modalMealIcon">🍳</span>
+          <span id="modalMealType">Breakfast</span>
+        </div>
+        <h2 class="modal-meal-name" id="modalMealName">Avocado Toast with Eggs</h2>
+        <div class="modal-meta">
+          <span class="modal-meta-item" id="modalCalories">
+            <span>⚡</span> <strong>450</strong> cal
+          </span>
+          <span class="modal-meta-item" id="modalPrepTime">
+            <span>🕐</span> <strong>10</strong> min prep
+          </span>
+          <span class="modal-meta-item" id="modalCookTime">
+            <span>🔥</span> <strong>5</strong> min cook
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="modal-body">
+      <div class="recipe-section">
+        <h3 class="recipe-section-title">
+          <span class="emoji">📝</span> Ingredients
+        </h3>
+        <div class="ingredient-list" id="modalIngredients"></div>
+      </div>
+      
+      <div class="recipe-section">
+        <h3 class="recipe-section-title">
+          <span class="emoji">👨‍🍳</span> Instructions
+        </h3>
+        <div class="instruction-list" id="modalInstructions"></div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -528,16 +662,39 @@ IMPORTANT RULES:
 3. Keep the total grocery cost under $${budget}
 4. Make meals practical and realistic for home cooking
 5. Vary cuisines and flavors throughout the week
-${calorieTarget ? `6. Aim for meals that total approximately ${calorieTarget} calories per day per person` : ""}
+6. Include detailed recipes with ingredients and step-by-step instructions for each meal
+7. Keep recipes simple with 5-8 ingredients and 3-6 steps
+${calorieTarget ? `8. Aim for meals that total approximately ${calorieTarget} calories per day per person` : ""}
 
 Respond ONLY with valid JSON (no markdown, no backticks, no preamble) in this exact format:
 {
   "meals": {
     "Monday": { 
-      "breakfast": { "name": "meal name — brief description", "calories": 350 },
-      "lunch": { "name": "meal name — brief description", "calories": 500 },
-      "dinner": { "name": "meal name — brief description", "calories": 650 },
-      "snack": { "name": "snack description", "calories": 200 }
+      "breakfast": { 
+        "name": "Avocado Toast with Poached Eggs",
+        "calories": 350,
+        "recipe": {
+          "prepTime": 5,
+          "cookTime": 10,
+          "ingredients": [
+            "2 slices whole grain bread",
+            "1 ripe avocado",
+            "2 eggs",
+            "Salt and pepper to taste",
+            "Red pepper flakes (optional)"
+          ],
+          "instructions": [
+            "Toast the bread slices until golden brown",
+            "Mash the avocado in a bowl with salt and pepper",
+            "Bring a pot of water to a gentle simmer and poach the eggs for 3-4 minutes",
+            "Spread mashed avocado on toast and top with poached eggs",
+            "Season with additional salt, pepper, and red pepper flakes if desired"
+          ]
+        }
+      },
+      "lunch": { "name": "...", "calories": 500, "recipe": {...} },
+      "dinner": { "name": "...", "calories": 650, "recipe": {...} },
+      "snack": { "name": "...", "calories": 200, "recipe": {...} }
     },
     "Tuesday": { "breakfast": {...}, "lunch": {...}, "dinner": {...}, "snack": {...} },
     "Wednesday": { "breakfast": {...}, "lunch": {...}, "dinner": {...}, "snack": {...} },
@@ -693,7 +850,7 @@ function renderMeals() {
     const calories = meal?.calories;
     
     return `
-    <div class="meal-card" style="border-left: 4px solid ${color}">
+    <div class="meal-card" style="border-left: 4px solid ${color}" onclick="openRecipeModal('${key}', '${label}', '${icon}')">
       <div class="meal-card-header">
         <span style="font-size:20px">${icon}</span>
         <span class="meal-type">${label}</span>
@@ -702,6 +859,63 @@ function renderMeals() {
       <p class="meal-desc">${mealName}</p>
     </div>
   `}).join("");
+}
+
+// ── Recipe Modal ──
+function openRecipeModal(mealKey, mealLabel, mealIcon) {
+  const dayMeals = mealPlan[DAYS[selectedDay]] || {};
+  const meal = dayMeals[mealKey];
+  
+  if (!meal || !meal.recipe) {
+    return; // No recipe data available
+  }
+
+  const modal = document.getElementById("recipeModal");
+  
+  // Set header info
+  document.getElementById("modalMealIcon").textContent = mealIcon;
+  document.getElementById("modalMealType").textContent = mealLabel;
+  document.getElementById("modalMealName").textContent = meal.name || mealLabel;
+  
+  // Set meta info
+  const caloriesEl = document.getElementById("modalCalories");
+  caloriesEl.innerHTML = `<span>⚡</span> <strong>${meal.calories || 0}</strong> cal`;
+  
+  const prepTimeEl = document.getElementById("modalPrepTime");
+  prepTimeEl.innerHTML = `<span>🕐</span> <strong>${meal.recipe.prepTime || "—"}</strong> min prep`;
+  
+  const cookTimeEl = document.getElementById("modalCookTime");
+  cookTimeEl.innerHTML = `<span>🔥</span> <strong>${meal.recipe.cookTime || "—"}</strong> min cook`;
+  
+  // Set ingredients
+  const ingredientsEl = document.getElementById("modalIngredients");
+  ingredientsEl.innerHTML = (meal.recipe.ingredients || []).map(ingredient => `
+    <div class="ingredient-item">
+      <span class="ingredient-bullet"></span>
+      <span class="ingredient-text">${ingredient}</span>
+    </div>
+  `).join("");
+  
+  // Set instructions
+  const instructionsEl = document.getElementById("modalInstructions");
+  instructionsEl.innerHTML = (meal.recipe.instructions || []).map((instruction, i) => `
+    <div class="instruction-item">
+      <span class="instruction-number">${i + 1}</span>
+      <p class="instruction-text">${instruction}</p>
+    </div>
+  `).join("");
+  
+  // Show modal
+  modal.classList.add("show");
+  document.body.style.overflow = "hidden";
+}
+
+function closeRecipeModal(event) {
+  if (event && event.target !== event.currentTarget) return;
+  
+  const modal = document.getElementById("recipeModal");
+  modal.classList.remove("show");
+  document.body.style.overflow = "";
 }
 
 // ── Grocery ──
