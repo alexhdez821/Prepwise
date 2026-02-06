@@ -136,6 +136,18 @@
   .text-input::placeholder { color: var(--text-dim); }
   .text-input:focus { border-color: rgba(212,160,90,0.4); }
 
+  /* ── Number Input ── */
+  .input-row { display: flex; align-items: center; gap: 12px; }
+  .number-input {
+    flex: 1; padding: 12px 16px; border-radius: 10px;
+    border: 1px solid var(--glass-border-light);
+    background: var(--glass); color: var(--cream); font-size: 14px;
+    outline: none; font-family: 'DM Sans', sans-serif;
+  }
+  .number-input::placeholder { color: var(--text-dim); }
+  .number-input:focus { border-color: rgba(212,160,90,0.4); }
+  .input-suffix { color: var(--text-muted); font-size: 14px; white-space: nowrap; }
+
   /* ── Generate Button ── */
   .gen-btn {
     width: 100%; padding: 16px 24px; border-radius: 12px; border: none;
@@ -180,6 +192,28 @@
   .summary-label { color: var(--text-dim); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
   .summary-divider { width: 1px; height: 32px; background: rgba(255,255,255,0.08); }
 
+  /* Calorie Progress Bar */
+  .calorie-progress {
+    background: var(--glass); border: 1px solid var(--glass-border);
+    border-radius: 12px; padding: 16px; margin-bottom: 20px;
+  }
+  .cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .cal-label { color: var(--text-mid); font-size: 13px; font-weight: 600; }
+  .cal-values { display: flex; align-items: baseline; gap: 6px; }
+  .cal-current { color: var(--gold-light); font-size: 24px; font-weight: 700; }
+  .cal-target { color: var(--text-dim); font-size: 14px; }
+  .progress-bar-bg {
+    height: 8px; background: rgba(255,255,255,0.06); border-radius: 10px;
+    overflow: hidden; position: relative;
+  }
+  .progress-bar-fill {
+    height: 100%; background: linear-gradient(90deg, var(--gold) 0%, var(--gold-light) 100%);
+    border-radius: 10px; transition: width 0.4s ease;
+  }
+  .progress-bar-fill.over {
+    background: linear-gradient(90deg, #F59E0B 0%, #FCD34D 100%);
+  }
+
   /* Tabs */
   .tab-row { display: flex; gap: 6px; margin-bottom: 20px; background: rgba(255,255,255,0.03); border-radius: 10px; padding: 4px; }
   .tab {
@@ -207,7 +241,11 @@
     border-radius: 12px; padding: 14px 16px;
   }
   .meal-card-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
-  .meal-type { color: var(--text-muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
+  .meal-type { color: var(--text-muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; flex: 1; }
+  .meal-calories {
+    background: rgba(212,160,90,0.15); color: var(--gold-light);
+    padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;
+  }
   .meal-desc { color: var(--text); font-size: 15px; line-height: 1.5; }
 
   /* Grocery */
@@ -312,6 +350,15 @@
         </div>
       </div>
 
+      <!-- Calorie Target -->
+      <div class="section">
+        <label class="label">Daily Calorie Target (optional)</label>
+        <div class="input-row">
+          <input type="number" class="number-input" id="calorieInput" placeholder="e.g. 2000" min="800" max="5000" step="50">
+          <span class="input-suffix">cal/person</span>
+        </div>
+      </div>
+
       <!-- Dislikes -->
       <div class="section">
         <label class="label">Foods to Avoid (optional)</label>
@@ -341,6 +388,20 @@
       <div class="summary-item"><span class="summary-value" id="sumIngredients">0</span><span class="summary-label">Ingredients</span></div>
       <div class="summary-divider"></div>
       <div class="summary-item"><span class="summary-value" id="sumChecked">0/0</span><span class="summary-label">Checked</span></div>
+    </div>
+
+    <!-- Calorie Progress (only shown if target is set) -->
+    <div id="calorieProgress" class="calorie-progress hidden">
+      <div class="cal-header">
+        <span class="cal-label">Daily Calories</span>
+        <div class="cal-values">
+          <span class="cal-current" id="calCurrent">0</span>
+          <span class="cal-target">/ <span id="calTarget">2000</span> cal</span>
+        </div>
+      </div>
+      <div class="progress-bar-bg">
+        <div class="progress-bar-fill" id="calProgress" style="width: 0%"></div>
+      </div>
     </div>
 
     <div class="tab-row">
@@ -386,6 +447,7 @@ const AISLE_ICONS = {
 let selectedDiets = [];
 let budget = 100;
 let household = 2;
+let calorieTarget = null;
 let selectedDay = 0;
 let mealPlan = null;
 let groceryList = null;
@@ -443,6 +505,13 @@ async function generatePlan() {
     : selectedDiets.map(d => DIETARY_OPTIONS.find(o => o.id === d)?.label).join(", ");
 
   const dislikes = document.getElementById("dislikesInput").value.trim();
+  const calorieInput = document.getElementById("calorieInput").value.trim();
+  calorieTarget = calorieInput ? parseInt(calorieInput) : null;
+
+  let calorieInstruction = "";
+  if (calorieTarget) {
+    calorieInstruction = `- Daily calorie target: ${calorieTarget} calories per person\n- Include estimated calories for each meal`;
+  }
 
   const prompt = `You are a meal prep planning expert. Create a weekly meal plan and grocery list.
 
@@ -450,6 +519,7 @@ Requirements:
 - Dietary preferences: ${dietLabels}
 - Weekly grocery budget: $${budget} USD
 - Household size: ${household} people
+${calorieInstruction}
 ${dislikes ? `- Foods to avoid: ${dislikes}` : ""}
 
 IMPORTANT RULES:
@@ -458,17 +528,23 @@ IMPORTANT RULES:
 3. Keep the total grocery cost under $${budget}
 4. Make meals practical and realistic for home cooking
 5. Vary cuisines and flavors throughout the week
+${calorieTarget ? `6. Aim for meals that total approximately ${calorieTarget} calories per day per person` : ""}
 
 Respond ONLY with valid JSON (no markdown, no backticks, no preamble) in this exact format:
 {
   "meals": {
-    "Monday": { "breakfast": "meal name — brief description", "lunch": "meal name — brief description", "dinner": "meal name — brief description", "snack": "snack description" },
-    "Tuesday": { "breakfast": "...", "lunch": "...", "dinner": "...", "snack": "..." },
-    "Wednesday": { "breakfast": "...", "lunch": "...", "dinner": "...", "snack": "..." },
-    "Thursday": { "breakfast": "...", "lunch": "...", "dinner": "...", "snack": "..." },
-    "Friday": { "breakfast": "...", "lunch": "...", "dinner": "...", "snack": "..." },
-    "Saturday": { "breakfast": "...", "lunch": "...", "dinner": "...", "snack": "..." },
-    "Sunday": { "breakfast": "...", "lunch": "...", "dinner": "...", "snack": "..." }
+    "Monday": { 
+      "breakfast": { "name": "meal name — brief description", "calories": 350 },
+      "lunch": { "name": "meal name — brief description", "calories": 500 },
+      "dinner": { "name": "meal name — brief description", "calories": 650 },
+      "snack": { "name": "snack description", "calories": 200 }
+    },
+    "Tuesday": { "breakfast": {...}, "lunch": {...}, "dinner": {...}, "snack": {...} },
+    "Wednesday": { "breakfast": {...}, "lunch": {...}, "dinner": {...}, "snack": {...} },
+    "Thursday": { "breakfast": {...}, "lunch": {...}, "dinner": {...}, "snack": {...} },
+    "Friday": { "breakfast": {...}, "lunch": {...}, "dinner": {...}, "snack": {...} },
+    "Saturday": { "breakfast": {...}, "lunch": {...}, "dinner": {...}, "snack": {...} },
+    "Sunday": { "breakfast": {...}, "lunch": {...}, "dinner": {...}, "snack": {...} }
   },
   "grocery": {
     "Produce": [{ "item": "ingredient name", "qty": "amount needed", "cost": 3.50 }],
@@ -534,6 +610,7 @@ function showResults() {
   document.getElementById("prefScreen").classList.add("hidden");
   document.getElementById("resultScreen").classList.remove("hidden");
   updateSummary();
+  updateCalorieProgress();
   renderDaySelector();
   renderMeals();
   renderGrocery();
@@ -547,6 +624,35 @@ function updateSummary() {
   document.getElementById("sumServings").textContent = household;
   document.getElementById("sumIngredients").textContent = totalGroceryItems;
   document.getElementById("sumChecked").textContent = `${checkedCount}/${totalGroceryItems}`;
+}
+
+function updateCalorieProgress() {
+  const progressEl = document.getElementById("calorieProgress");
+  
+  if (!calorieTarget) {
+    progressEl.classList.add("hidden");
+    return;
+  }
+
+  progressEl.classList.remove("hidden");
+  
+  // Calculate daily calories for selected day
+  const dayMeals = mealPlan[DAYS[selectedDay]] || {};
+  let dailyCalories = 0;
+  MEAL_META.forEach(({ key }) => {
+    const meal = dayMeals[key];
+    if (meal && meal.calories) {
+      dailyCalories += meal.calories;
+    }
+  });
+
+  document.getElementById("calCurrent").textContent = dailyCalories;
+  document.getElementById("calTarget").textContent = calorieTarget;
+  
+  const percentage = Math.min((dailyCalories / calorieTarget) * 100, 100);
+  const fillEl = document.getElementById("calProgress");
+  fillEl.style.width = `${percentage}%`;
+  fillEl.classList.toggle("over", dailyCalories > calorieTarget);
 }
 
 // ── Tabs ──
@@ -573,21 +679,29 @@ function selectDay(i) {
   selectedDay = i;
   document.querySelectorAll(".day-btn").forEach((el, idx) => el.classList.toggle("active", idx === i));
   renderMeals();
+  updateCalorieProgress();
 }
 
 function renderMeals() {
   const dayMeals = mealPlan[DAYS[selectedDay]] || {};
   const container = document.getElementById("mealCards");
   if (!container) return;
-  container.innerHTML = MEAL_META.map(({ key, label, icon, color }) => `
+  
+  container.innerHTML = MEAL_META.map(({ key, label, icon, color }) => {
+    const meal = dayMeals[key];
+    const mealName = typeof meal === 'string' ? meal : (meal?.name || "—");
+    const calories = meal?.calories;
+    
+    return `
     <div class="meal-card" style="border-left: 4px solid ${color}">
       <div class="meal-card-header">
         <span style="font-size:20px">${icon}</span>
         <span class="meal-type">${label}</span>
+        ${calories ? `<span class="meal-calories">${calories} cal</span>` : ''}
       </div>
-      <p class="meal-desc">${dayMeals[key] || "—"}</p>
+      <p class="meal-desc">${mealName}</p>
     </div>
-  `).join("");
+  `}).join("");
 }
 
 // ── Grocery ──
