@@ -414,7 +414,7 @@
         <span class="logo-icon">🥘</span>
         <h1>PrepWise</h1>
       </div>
-      <p class="subtitle">Smart meal planning that saves you time, money, and food waste</p>
+      <p class="subtitle">Smart daily meal planning with recipes, calories, and grocery lists</p>
     </div>
 
     <div class="card">
@@ -424,11 +424,10 @@
         <div class="chip-grid" id="chipGrid"></div>
       </div>
 
-      <!-- Budget -->
       <div class="section">
-        <label class="label">Weekly Budget <span class="budget-badge" id="budgetBadge">$100</span></label>
-        <input type="range" min="30" max="300" step="5" value="100" id="budgetSlider">
-        <div class="slider-labels"><span>$30</span><span>$300</span></div>
+        <label class="label">Daily Budget <span class="budget-badge" id="budgetBadge">$20</span></label>
+        <input type="range" min="10" max="50" step="5" value="20" id="budgetSlider">
+        <div class="slider-labels"><span>$10</span><span>$50</span></div>
       </div>
 
       <!-- Household -->
@@ -457,7 +456,7 @@
       </div>
 
       <!-- Generate -->
-      <button class="gen-btn" id="genBtn" onclick="generatePlan()">Generate Meal Plan ✨</button>
+      <button class="gen-btn" id="genBtn" onclick="generatePlan()">Generate Monday's Meals ✨</button>
       <p class="error-text hidden" id="errorText"></p>
     </div>
 
@@ -579,7 +578,7 @@ const AISLE_ICONS = {
 };
 
 let selectedDiets = [];
-let budget = 100;
+let budget = 20;
 let household = 2;
 let calorieTarget = null;
 let selectedDay = 0;
@@ -632,7 +631,7 @@ async function generatePlan() {
   const errEl = document.getElementById("errorText");
   errEl.classList.add("hidden");
   btn.disabled = true;
-  btn.innerHTML = `<span class="loading"><span class="spinner"></span> Crafting your meal plan...</span>`;
+  btn.innerHTML = `<span class="loading"><span class="spinner"></span> Crafting Monday's meals...</span>`;
 
   const dietLabels = selectedDiets.length === 0 || selectedDiets.includes("none")
     ? "no specific dietary restrictions"
@@ -647,24 +646,20 @@ async function generatePlan() {
     calorieInstruction = `- Daily calorie target: ${calorieTarget} calories per person\n- Include estimated calories for each meal`;
   }
 
-  const prompt = `You are a meal prep planning expert. Create a weekly meal plan and grocery list.
+  const prompt = `You are a meal prep planning expert. Create a ONE DAY meal plan and grocery list for Monday.
 
 Requirements:
 - Dietary preferences: ${dietLabels}
-- Weekly grocery budget: $${budget} USD
+- Daily grocery budget: $${budget} USD
 - Household size: ${household} people
 ${calorieInstruction}
 ${dislikes ? `- Foods to avoid: ${dislikes}` : ""}
 
 IMPORTANT RULES:
-1. Maximize ingredient overlap between meals to reduce waste and cost
-2. Include breakfast, lunch, dinner, and one snack per day
-3. Keep the total grocery cost under $${budget}
-4. Make meals practical and realistic for home cooking
-5. Vary cuisines and flavors throughout the week
-6. Include detailed recipes with ingredients and step-by-step instructions for each meal
-7. Keep recipes simple with 5-8 ingredients and 3-6 steps
-${calorieTarget ? `8. Aim for meals that total approximately ${calorieTarget} calories per day per person` : ""}
+1. Include breakfast, lunch, dinner, and one snack for Monday only
+2. Keep recipes simple with 5-8 ingredients and 3-6 steps
+3. Make meals practical and realistic for home cooking
+${calorieTarget ? `4. Aim for meals that total approximately ${calorieTarget} calories per person` : ""}
 
 Respond ONLY with valid JSON (no markdown, no backticks, no preamble) in this exact format:
 {
@@ -695,13 +690,7 @@ Respond ONLY with valid JSON (no markdown, no backticks, no preamble) in this ex
       "lunch": { "name": "...", "calories": 500, "recipe": {...} },
       "dinner": { "name": "...", "calories": 650, "recipe": {...} },
       "snack": { "name": "...", "calories": 200, "recipe": {...} }
-    },
-    "Tuesday": { "breakfast": {...}, "lunch": {...}, "dinner": {...}, "snack": {...} },
-    "Wednesday": { "breakfast": {...}, "lunch": {...}, "dinner": {...}, "snack": {...} },
-    "Thursday": { "breakfast": {...}, "lunch": {...}, "dinner": {...}, "snack": {...} },
-    "Friday": { "breakfast": {...}, "lunch": {...}, "dinner": {...}, "snack": {...} },
-    "Saturday": { "breakfast": {...}, "lunch": {...}, "dinner": {...}, "snack": {...} },
-    "Sunday": { "breakfast": {...}, "lunch": {...}, "dinner": {...}, "snack": {...} }
+    }
   },
   "grocery": {
     "Produce": [{ "item": "ingredient name", "qty": "amount needed", "cost": 3.50 }],
@@ -753,7 +742,7 @@ Only include grocery categories that have items. Consolidate ingredients — if 
     errEl.classList.remove("hidden");
   } finally {
     btn.disabled = false;
-    btn.innerHTML = "Generate Meal Plan ✨";
+    btn.innerHTML = "Generate Monday's Meals ✨";
   }
 }
 
@@ -823,11 +812,8 @@ function switchTab(tab) {
 // ── Day Selector ──
 function renderDaySelector() {
   const container = document.getElementById("mealsTab");
-  let html = `<div class="day-row">`;
-  DAY_SHORT.forEach((d, i) => {
-    html += `<button class="day-btn ${i === selectedDay ? "active" : ""}" onclick="selectDay(${i})">${d}</button>`;
-  });
-  html += `</div><div id="mealCards" class="meal-cards"></div>`;
+  // Only show Monday, hide day selector
+  let html = `<div id="mealCards" class="meal-cards"></div>`;
   container.innerHTML = html;
   renderMeals();
 }
