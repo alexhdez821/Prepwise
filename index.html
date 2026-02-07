@@ -650,16 +650,18 @@ async function generatePlan() {
 
 Requirements:
 - Dietary preferences: ${dietLabels}
-- Daily grocery budget: $${budget} USD
+- STRICT BUDGET LIMIT: $${budget} USD maximum (total grocery cost MUST be under this)
 - Household size: ${household} people
 ${calorieInstruction}
 ${dislikes ? `- Foods to avoid: ${dislikes}` : ""}
 
-IMPORTANT RULES:
-1. Include breakfast, lunch, dinner, and one snack for Monday only
-2. Keep recipes simple with 5-8 ingredients and 3-6 steps
-3. Make meals practical and realistic for home cooking
-${calorieTarget ? `4. Aim for meals that total approximately ${calorieTarget} calories per person` : ""}
+CRITICAL RULES:
+1. The total grocery cost MUST be at or below $${budget}. This is non-negotiable.
+2. Include breakfast, lunch, dinner, and one snack for Monday only
+3. Keep recipes simple with 5-8 ingredients and 3-6 steps
+4. Use affordable, common ingredients to stay within budget
+5. Make meals practical and realistic for home cooking
+${calorieTarget ? `6. Aim for meals that total approximately ${calorieTarget} calories per person` : ""}
 
 Respond ONLY with valid JSON (no markdown, no backticks, no preamble) in this exact format:
 {
@@ -707,6 +709,8 @@ Respond ONLY with valid JSON (no markdown, no backticks, no preamble) in this ex
   "totalCost": 85.50,
   "tips": ["tip 1 about prep or storage", "tip 2", "tip 3"]
 }
+
+REMEMBER: The totalCost MUST be at or below $${budget}. Choose affordable ingredients and reasonable portions.
 
 Only include grocery categories that have items. Consolidate ingredients — if multiple meals use chicken, list it once with the total quantity needed.`;
 
