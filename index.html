@@ -172,12 +172,20 @@
 
   /* ═══════ RESULTS ═══════ */
   .top-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .top-bar-actions { display: flex; align-items: center; gap: 8px; }
   .back-btn {
     background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08);
     color: var(--text-muted); padding: 8px 14px; border-radius: 8px;
     cursor: pointer; font-size: 13px; transition: all 0.2s;
   }
   .back-btn:hover { background: rgba(255,255,255,0.1); }
+  .refresh-btn {
+    background: rgba(212,160,90,0.14); border: 1px solid rgba(212,160,90,0.32);
+    color: var(--gold-light); padding: 8px 14px; border-radius: 8px;
+    cursor: pointer; font-size: 13px; transition: all 0.2s;
+  }
+  .refresh-btn:hover { background: rgba(212,160,90,0.22); }
+  .refresh-btn:disabled { opacity: 0.6; cursor: not-allowed; }
   .logo-row-sm { display: flex; align-items: center; gap: 6px; }
   .logo-row-sm span:last-child { font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 700; color: var(--cream); }
 
@@ -466,7 +474,10 @@
   <!-- ═══════ RESULTS SCREEN ═══════ -->
   <div id="resultScreen" class="hidden">
     <div class="top-bar">
-      <button class="back-btn" onclick="showPreferences()">← New Plan</button>
+      <div class="top-bar-actions">
+        <button class="back-btn" onclick="showPreferences()">← New Plan</button>
+        <button class="refresh-btn" id="refreshBtn" onclick="refreshPlan()">↻ Refresh Options</button>
+      </div>
       <div class="logo-row-sm"><span>🥘</span><span>PrepWise</span></div>
     </div>
 
@@ -596,6 +607,7 @@ let tips = [];
 let totalCost = 0;
 let checkedItems = {};
 let totalGroceryItems = 0;
+let refreshCount = 0;
 
 // ── Init Chips ──
 const chipGrid = document.getElementById("chipGrid");
@@ -635,11 +647,27 @@ function updateHousehold() {
 
 // ── Generate Plan ──
 async function generatePlan() {
-  const btn = document.getElementById("genBtn");
+  await requestPlan({ isRefresh: false });
+}
+
+async function refreshPlan() {
+  await requestPlan({ isRefresh: true });
+}
+
+async function requestPlan({ isRefresh }) {
+  const generateBtn = document.getElementById("genBtn");
+  const refreshBtn = document.getElementById("refreshBtn");
   const errEl = document.getElementById("errorText");
+
   errEl.classList.add("hidden");
-  btn.disabled = true;
-  btn.innerHTML = `<span class="loading"><span class="spinner"></span> Crafting Monday's meals...</span>`;
+
+  if (isRefresh) {
+    refreshBtn.disabled = true;
+    refreshBtn.innerHTML = `<span class="loading"><span class="spinner"></span> Refreshing...</span>`;
+  } else {
+    generateBtn.disabled = true;
+    generateBtn.innerHTML = `<span class="loading"><span class="spinner"></span> Crafting Monday's meals...</span>`;
+  }
 
   const dietLabels = selectedDiets.length === 0 || selectedDiets.includes("none")
     ? "no specific dietary restrictions"
@@ -654,6 +682,10 @@ async function generatePlan() {
     calorieInstruction = `- Daily calorie target: ${calorieTarget} calories per person\n- Include estimated calories for each meal`;
   }
 
+  const variationInstruction = isRefresh
+    ? `- This is refresh attempt #${refreshCount + 1}. Produce noticeably different meal choices and flavor profile than previous outputs while keeping all constraints.`
+    : "";
+
   const prompt = `You are a meal prep planning expert. Create a ONE DAY meal plan and grocery list for Monday.
 
 Requirements:
@@ -662,6 +694,7 @@ Requirements:
 - Household size: ${household} people
 ${calorieInstruction}
 ${dislikes ? `- Foods to avoid: ${dislikes}` : ""}
+${variationInstruction}
 
 CRITICAL RULES:
 1. The total grocery cost MUST be at or below $${budget}. This is non-negotiable.
@@ -722,7 +755,8 @@ Respond ONLY with valid JSON (no markdown, no backticks, no preamble) in this ex
 
 REMEMBER: The totalCost MUST be at or below $${budget}. Choose affordable ingredients and reasonable portions.
 
-Only include grocery categories that have items. Consolidate ingredients — if multiple meals use chicken, list it once with the total quantity needed.`;
+Only include grocery categories that have items. Consolidate ingredients — if multiple meals use chicken, list it once with the total quantity needed.
+Variation token: ${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
   try {
     // Call our serverless function instead of Claude API directly
@@ -748,6 +782,7 @@ Only include grocery categories that have items. Consolidate ingredients — if 
     checkedItems = {};
     selectedDay = 0;
     totalGroceryItems = Object.values(groceryList).reduce((s, items) => s + items.length, 0);
+    if (isRefresh) refreshCount += 1;
 
     showResults();
   } catch (err) {
@@ -755,8 +790,10 @@ Only include grocery categories that have items. Consolidate ingredients — if 
     errEl.textContent = "Something went wrong generating your meal plan. Please try again.";
     errEl.classList.remove("hidden");
   } finally {
-    btn.disabled = false;
-    btn.innerHTML = "Generate Monday's Meals ✨";
+    generateBtn.disabled = false;
+    generateBtn.innerHTML = "Generate Monday's Meals ✨";
+    refreshBtn.disabled = false;
+    refreshBtn.innerHTML = "↻ Refresh Options";
   }
 }
 
