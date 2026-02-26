@@ -523,6 +523,9 @@
           <span class="modal-meta-item" id="modalCalories">
             <span>⚡</span> <strong>450</strong> cal
           </span>
+          <span class="modal-meta-item" id="modalProtein">
+            <span>💪</span> <strong>25</strong>g protein
+          </span>
           <span class="modal-meta-item" id="modalPrepTime">
             <span>🕐</span> <strong>10</strong> min prep
           </span>
@@ -661,7 +664,8 @@ CRITICAL RULES:
 3. Keep recipes simple with 5-8 ingredients and 3-6 steps
 4. Use affordable, common ingredients to stay within budget
 5. Make meals practical and realistic for home cooking
-${calorieTarget ? `6. Aim for meals that total approximately ${calorieTarget} calories per person` : ""}
+6. Include estimated protein grams for each meal
+${calorieTarget ? `7. Aim for meals that total approximately ${calorieTarget} calories per person` : ""}
 
 Respond ONLY with valid JSON (no markdown, no backticks, no preamble) in this exact format:
 {
@@ -670,6 +674,7 @@ Respond ONLY with valid JSON (no markdown, no backticks, no preamble) in this ex
       "breakfast": { 
         "name": "Avocado Toast with Poached Eggs",
         "calories": 350,
+        "protein": 22,
         "recipe": {
           "prepTime": 5,
           "cookTime": 10,
@@ -689,9 +694,9 @@ Respond ONLY with valid JSON (no markdown, no backticks, no preamble) in this ex
           ]
         }
       },
-      "lunch": { "name": "...", "calories": 500, "recipe": {...} },
-      "dinner": { "name": "...", "calories": 650, "recipe": {...} },
-      "snack": { "name": "...", "calories": 200, "recipe": {...} }
+      "lunch": { "name": "...", "calories": 500, "protein": 35, "recipe": {...} },
+      "dinner": { "name": "...", "calories": 650, "protein": 42, "recipe": {...} },
+      "snack": { "name": "...", "calories": 200, "protein": 12, "recipe": {...} }
     }
   },
   "grocery": {
@@ -838,12 +843,14 @@ function renderMeals() {
     const meal = dayMeals[key];
     const mealName = typeof meal === 'string' ? meal : (meal?.name || "—");
     const calories = meal?.calories;
+    const protein = meal?.protein;
     
     return `
     <div class="meal-card" style="border-left: 4px solid ${color}" onclick="openRecipeModal('${key}', '${label}', '${icon}')">
       <div class="meal-card-header">
         <span style="font-size:20px">${icon}</span>
         <span class="meal-type">${label}</span>
+        ${protein ? `<span class="meal-calories">💪 ${protein}g</span>` : ''}
         ${calories ? `<span class="meal-calories">${calories} cal</span>` : ''}
       </div>
       <p class="meal-desc">${mealName}</p>
@@ -870,6 +877,9 @@ function openRecipeModal(mealKey, mealLabel, mealIcon) {
   // Set meta info
   const caloriesEl = document.getElementById("modalCalories");
   caloriesEl.innerHTML = `<span>⚡</span> <strong>${meal.calories || 0}</strong> cal`;
+
+  const proteinEl = document.getElementById("modalProtein");
+  proteinEl.innerHTML = `<span>💪</span> <strong>${meal.protein || 0}</strong>g protein`;
   
   const prepTimeEl = document.getElementById("modalPrepTime");
   prepTimeEl.innerHTML = `<span>🕐</span> <strong>${meal.recipe.prepTime || "—"}</strong> min prep`;
